@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <title>Localisateur de bornes de recharge</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <style>
+        #map {
+            height: 400px;
+            width: 600px;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Localisateur de bornes de recharge</h1>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([{{ coordonnees.lat }}, {{ coordonnees.lng }}], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        L.marker([{{ coordonnees.lat }}, {{ coordonnees.lng }}]).addTo(map)
+            .bindPopup('Position Actuelle')
+            .openPopup();
+
+        {% if charge_points %}
+            {% for point in charge_points %}
+                {% if point.fields.geo_point_borne %}
+                    var point_location = [{{ point.fields.geo_point_borne[0] }}, {{ point.fields.geo_point_borne[1] }}];
+                    console.log("Ajout d'un marqueur à ", point_location);
+                    L.marker(point_location).addTo(map).bindPopup('Point de Recharge');
+                {% else %}
+                    console.log("Point sans coordonnées geo_point_borne");
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            console.log("Pas de points de recharge disponibles");
+        {% endif %}
+        // Ici, vous pouvez ajouter le code pour afficher l'itinéraire sur la carte en utilisant les données de l'itinéraire récupérées
+        // par exemple, pour l'API OpenStreetMap:
+        {% if itineraire and itineraire.routes %}
+            var route = L.polyline({{ itineraire.routes[0].geometry.coordinates }}, {color: 'blue'}).addTo(map);
+            map.fitBounds(route.getBounds());
+        {% endif %}
+    </script>
+
+    <form method="post" action="/">
+        <input type="number" name="d" placeholder="Distance" required>
+        <input type="number" name="v" placeholder="Vitesse" required>
+        <input type="number" name="autonomie" placeholder="Autonomie" required>
+        <input type="number" name="temps_charge" placeholder="Temps de charge" required>
+        
+        <input type="float" name="start_lat" placeholder="Latitude start" required>
+        <input type="float" name="start_lng" placeholder="Longitude start" required>
+        
+        <input type="float" name="end_lat" placeholder="Latitude dest" required>
+        <input type="float" name="end_lng" placeholder="Longitude dest" required>
+        
+        <button type="submit">Calculer</button>
+    </form>
+
+    {% if result != None %}
+        <p>Temps de trajet: {{ result }}</p>
+    {% endif %}
+</body>
+
+</html>
